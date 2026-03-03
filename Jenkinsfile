@@ -19,6 +19,7 @@ pipeline {
                 sh '''
                 docker rm -f devops-container || true
                 docker run -d --name devops-container -p 8081:80 devops-nginx:${BUILD_NUMBER}
+                docker image prune -f
                 '''
             }
         }
