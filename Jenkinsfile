@@ -4,22 +4,19 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out source code'
                 checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Build stage'
-                sh 'ls -l app'
+                sh 'docker build -t devops-nginx:1.0 .'
             }
         }
 
-        stage('Test') {
+        stage('Run Container') {
             steps {
-                echo 'Test stage'
-                sh 'cat app/index.html'
+                sh 'docker run -d -p 8081:80 devops-nginx:1.0'
             }
         }
     }
