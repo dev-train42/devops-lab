@@ -14,9 +14,12 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
+        stage('Deploy') {
             steps {
-                sh 'docker run -d -p 8081:80 devops-nginx:1.0'
+                sh '''
+                docker rm -f devops-container || true
+                docker run -d --name devops-container -p 8081:80 devops-nginx:1.0
+                '''
             }
         }
     }
