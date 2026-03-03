@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-nginx-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-nginx
+  template:
+    metadata:
+      labels:
+        app: devops-nginx
+    spec:
+      containers:
+      - name: devops-nginx
+        image: devtrain42/devops-nginx:15
+        ports:
+        - containerPort: 80

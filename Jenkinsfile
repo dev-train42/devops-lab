@@ -41,5 +41,14 @@ pipeline {
                 sh 'docker image prune -f'
             }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh """
+                kubectl set image deployment/devops-nginx-deployment \
+                devops-nginx=$DOCKER_USER/$IMAGE_NAME:${BUILD_NUMBER}
+                """
+            }
+        }
     }
 }
