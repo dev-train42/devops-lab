@@ -8,9 +8,23 @@ pipeline {
             }
         }
 
+        environment {
+            DOCKER_USER = "devtrain42"
+        }
+
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t devops-nginx:${BUILD_NUMBER} .'
+                sh """
+                docker build -t $DOCKER_USER/devops-nginx:${BUILD_NUMBER} .
+                """
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh """
+                docker push $DOCKER_USER/devops-nginx:${BUILD_NUMBER}
+                """
             }
         }
 
