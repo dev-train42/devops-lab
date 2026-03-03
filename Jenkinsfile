@@ -10,7 +10,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t devops-nginx:1.0 .'
+                sh 'docker build -t devops-nginx:${BUILD_NUMBER} .'
             }
         }
 
@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                 docker rm -f devops-container || true
-                docker run -d --name devops-container -p 8081:80 devops-nginx:1.0
+                docker run -d --name devops-container -p 8081:80 devops-nginx:${BUILD_NUMBER}
                 '''
             }
         }
