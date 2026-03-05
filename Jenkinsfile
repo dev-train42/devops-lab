@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         DOCKER_USER = "devtrain42"
-        IMAGE_NAME = "devops-nginx"
+        FRONTEND_IMAGE = "devops-nginx"
+        BACKEND_IMAGE = "devops-api"
     }
 
     stages {
@@ -14,24 +15,72 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Frontend Image') {
             steps {
-                sh 'docker build -t $DOCKER_USER/$IMAGE_NAME:${BUILD_NUMBER} .'
+                sh 'docker build -t $DOCKER_USER/$FRONTEND_IMAGE:${BUILD_NUMBER} .'
             }
         }
 
-        stage('Push Image to Docker Hub') {
+        stage('Push Frontend Image') {
             steps {
-                sh 'docker push $DOCKER_USER/$IMAGE_NAME:${BUILD_NUMBER}'
+                sh 'docker push $DOCKER_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}'
             }
         }
 
-        stage('Deploy Container') {
+        stage('Build Backend Image') {
+            steps {
+                dir('devops-api') {
+                    sh 'docker build -t $DOCKER_USER/$BACKEND_IMAGE:${BUILD_NUMBER} .'
+                }
+            }
+        }
+
+        stage('Push Backend Image') {
+            steps {
+                sh 'docker push $DOCKER_USER/$BACKEND_IMAGE:${BUILD_NUMBER}'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    try {
+
+                        sh """
+                        kubectl set image deployment/devops-nginx-deployment \
+                        devops-nginx=$DOCKER_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}
+
+                        kubectl set image deployment/devops-api-deployment \
+                        devops-api=$DOCKER_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
+
+                        kubectl annotate deployment/devops-nginx-deployment \
+                        kubernetes.io/change-cause="Frontend version ${BUILD_NUMBER}" --overwrite
+
+                        kubectl annotate deployment/devops-api-deployment \
+                        kubernetes.io/change-cause="Backend version ${BUILD_NUMBER}" --overwrite
+
+                        kubectl rollout status deployment/devops-nginx-deployment --timeout=60s
+                        kubectl rollout status deployment/devops-api-deployment --timeout=60s
+                        """
+
+                    } catch (err) {
+
+                        sh """
+                        kubectl rollout undo deployment/devops-api-deployment
+                        kubectl rollout undo deployment/devops-nginx-deployment
+                        """
+
+                        error("Deployment failed. Rolled back automatically.")
+                    }
+                }
+            }
+        }
+
+        stage('Verify Rollout') {
             steps {
                 sh """
-                docker rm -f devops-container || true
-                docker run -d --name devops-container -p 8081:80 \
-                $DOCKER_USER/$IMAGE_NAME:${BUILD_NUMBER}
+                kubectl rollout status deployment/devops-nginx-deployment
+                kubectl rollout status deployment/devops-api-deployment
                 """
             }
         }
@@ -39,15 +88,6 @@ pipeline {
         stage('Cleanup Dangling Images') {
             steps {
                 sh 'docker image prune -f'
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh """
-                kubectl set image deployment/devops-nginx-deployment \
-                devops-nginx=$DOCKER_USER/$IMAGE_NAME:${BUILD_NUMBER}
-                """
             }
         }
     }

@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-api-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-api
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: devops-api
+        version: v2
+    spec:
+      containers:
+      - name: devops-api
+        image: devtrain42/devops-api:v2
+        ports:
+        - containerPort: 3000
